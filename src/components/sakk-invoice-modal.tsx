@@ -93,188 +93,188 @@ export function SakkInvoiceModal({ invoice, onClose }: SakkInvoiceModalProps) {
 
             {/* 1. Header Banner */}
             <div className="bg-[#11161d] text-white -mx-8 -mt-8 sm:-mx-12 sm:-mt-12 p-6 sm:p-8 flex items-center gap-6">
-            <img src="/logo.png" alt="SAKK Group" className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0" />
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none">SAKK GROUP</h1>
-              <p className="text-xs sm:text-sm font-semibold text-amber-400">Innovating for a Better Tomorrow</p>
-              <div className="text-[11px] sm:text-xs text-slate-300 space-y-0.5 pt-0.5 font-light">
-                <p>sakkgroupmanagement@gmail.com &nbsp;|&nbsp; +91 8294219244</p>
-                <p>www.sakkgroup.com</p>
-                <p>Delhi - 110092, India &nbsp;|&nbsp; GST: 07AFWFS6592Q1ZI</p>
-              </div>
-              <p className="text-[10px] sm:text-[11px] font-bold text-amber-400 flex items-center gap-1 pt-1">
-                <span>✓</span> ISO/IEC 27001:2022 CERTIFIED — INFORMATION SECURITY MANAGEMENT
-              </p>
-            </div>
-          </div>
-
-          {/* 2. INVOICE Title & Invoice Box */}
-          <div className="mt-8 flex flex-col sm:flex-row justify-between items-start gap-4">
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">INVOICE</h2>
-            <div className="border border-slate-300 rounded-lg overflow-hidden w-full sm:w-72 text-xs">
-              <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200 bg-white">
-                <span className="text-slate-500 font-medium">Invoice No.</span>
-                <span className="font-bold text-slate-900 font-mono">{invoice.invoiceNumber}</span>
-              </div>
-              <div className="flex justify-between items-center px-4 py-2 bg-slate-50/50">
-                <span className="text-slate-500 font-medium">Invoice Date</span>
-                <span className="font-medium text-slate-900">{formatDate(invoice.issuedDate || invoice.createdAt)}</span>
+              <img src="/logo.png" alt="SAKK Group" className="w-16 h-16 sm:w-20 sm:h-20 object-contain shrink-0" />
+              <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none">SAKK GROUP</h1>
+                <p className="text-xs sm:text-sm font-semibold text-amber-400">Innovating for a Better Tomorrow</p>
+                <div className="text-[11px] sm:text-xs text-slate-300 space-y-0.5 pt-0.5 font-light">
+                  <p>sakkgroupmanagement@gmail.com &nbsp;|&nbsp; +91 9296900728</p>
+                  <p>www.sakkgroup.com</p>
+                  <p>Delhi - 110092, India &nbsp;|&nbsp; GST: 07AFWFS6592Q1ZI</p>
+                </div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-amber-400 flex items-center gap-1 pt-1">
+                  <span>✓</span> ISO/IEC 27001:2022 CERTIFIED — INFORMATION SECURITY MANAGEMENT
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* 3. BILL TO & PAYMENT DETAILS */}
-          <div className="mt-8 grid sm:grid-cols-2 gap-8 text-xs">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
-                <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">BILL TO</h3>
-              </div>
-              <p className="text-sm font-bold text-slate-900 uppercase">{invoice.companyName || invoice.clientName || invoice.title || "VALUED CLIENT"}</p>
-              {(invoice.contactName || invoice.attnName) && (
-                <p className="text-slate-600 mt-1">Attn: {invoice.contactName || invoice.attnName}</p>
-              )}
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
-                <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">PAYMENT DETAILS</h3>
-              </div>
-              <div className="space-y-1 text-slate-700">
-                <p><span className="text-slate-500">Mode of Payment:</span> Bank Transfer / Wise</p>
-                <p><span className="text-slate-500">Payment Status:</span> <span className="font-semibold">{balanceDue <= 0 ? "Paid" : amountPaid > 0 ? "Partially Paid" : "Pending"}</span></p>
-                <p><span className="text-slate-500">Currency:</span> {curr} ({curr === "USD" ? "US Dollar" : curr === "INR" ? "Indian Rupee" : curr})</p>
+            {/* 2. INVOICE Title & Invoice Box */}
+            <div className="mt-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">INVOICE</h2>
+              <div className="border border-slate-300 rounded-lg overflow-hidden w-full sm:w-72 text-xs">
+                <div className="flex justify-between items-center px-4 py-2 border-b border-slate-200 bg-white">
+                  <span className="text-slate-500 font-medium">Invoice No.</span>
+                  <span className="font-bold text-slate-900 font-mono">{invoice.invoiceNumber}</span>
+                </div>
+                <div className="flex justify-between items-center px-4 py-2 bg-slate-50/50">
+                  <span className="text-slate-500 font-medium">Invoice Date</span>
+                  <span className="font-medium text-slate-900">{formatDate(invoice.issuedDate || invoice.createdAt)}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 4. Line Items Table */}
-          <div className="mt-8 border border-slate-900 rounded-lg overflow-hidden">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="bg-[#11161d] text-white">
-                  <th className="py-2.5 px-4 text-left font-bold uppercase tracking-wide">DESCRIPTION</th>
-                  <th className="py-2.5 px-4 text-right font-bold uppercase tracking-wide">AMOUNT ({curr})</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {items.map((it: any, idx: number) => (
-                  <tr key={idx} className={idx % 2 === 1 ? "bg-slate-50/60" : "bg-white"}>
-                    <td className="py-2.5 px-4 font-semibold text-slate-800">{it.name || it.description}</td>
-                    <td className="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">
-                      {Number(it.total || (Number(it.unitPrice || 0) * Number(it.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {/* 3. BILL TO & PAYMENT DETAILS */}
+            <div className="mt-8 grid sm:grid-cols-2 gap-8 text-xs">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
+                  <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">BILL TO</h3>
+                </div>
+                <p className="text-sm font-bold text-slate-900 uppercase">{invoice.companyName || invoice.clientName || invoice.title || "VALUED CLIENT"}</p>
+                {(invoice.contactName || invoice.attnName) && (
+                  <p className="text-slate-600 mt-1">Attn: {invoice.contactName || invoice.attnName}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
+                  <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">PAYMENT DETAILS</h3>
+                </div>
+                <div className="space-y-1 text-slate-700">
+                  <p><span className="text-slate-500">Mode of Payment:</span> Bank Transfer / Wise</p>
+                  <p><span className="text-slate-500">Payment Status:</span> <span className="font-semibold">{balanceDue <= 0 ? "Paid" : amountPaid > 0 ? "Partially Paid" : "Pending"}</span></p>
+                  <p><span className="text-slate-500">Currency:</span> {curr} ({curr === "USD" ? "US Dollar" : curr === "INR" ? "Indian Rupee" : curr})</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Line Items Table */}
+            <div className="mt-8 border border-slate-900 rounded-lg overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-[#11161d] text-white">
+                    <th className="py-2.5 px-4 text-left font-bold uppercase tracking-wide">DESCRIPTION</th>
+                    <th className="py-2.5 px-4 text-right font-bold uppercase tracking-wide">AMOUNT ({curr})</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {items.map((it: any, idx: number) => (
+                    <tr key={idx} className={idx % 2 === 1 ? "bg-slate-50/60" : "bg-white"}>
+                      <td className="py-2.5 px-4 font-semibold text-slate-800">{it.name || it.description}</td>
+                      <td className="py-2.5 px-4 text-right font-bold text-slate-900 font-mono">
+                        {Number(it.total || (Number(it.unitPrice || 0) * Number(it.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="py-2 px-4 text-slate-500 font-medium">Subtotal</td>
+                    <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
+                      {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
-                ))}
-                <tr>
-                  <td className="py-2 px-4 text-slate-500 font-medium">Subtotal</td>
-                  <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
-                    {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 text-slate-500 font-medium">GST @ {taxRate}% (as per Indian Government tax)</td>
-                  <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
-                    {taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-                <tr className="border-t border-slate-300">
-                  <td className="py-2 px-4 font-bold text-slate-900">Total Invoice Amount</td>
-                  <td className="py-2 px-4 text-right font-bold font-mono text-slate-900">
-                    {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 text-slate-500 font-medium">Amount Paid</td>
-                  <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
-                    {amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-                <tr className="bg-[#11161d] text-white">
-                  <td className="py-3 px-4 font-bold text-amber-400 text-sm">BALANCE DUE</td>
-                  <td className="py-3 px-4 text-right font-black text-white text-base font-mono">
-                    {curr} {balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <p className="text-[11px] text-slate-600 italic mt-3">
-            Amount in Words: {numberToWords(balanceDue)}
-          </p>
-
-          {/* 5. NOTE Section */}
-          <div className="mt-6 text-xs">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
-              <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">NOTE</h3>
+                  <tr>
+                    <td className="py-2 px-4 text-slate-500 font-medium">GST @ {taxRate}% (as per Indian Government tax)</td>
+                    <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
+                      {taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  <tr className="border-t border-slate-300">
+                    <td className="py-2 px-4 font-bold text-slate-900">Total Invoice Amount</td>
+                    <td className="py-2 px-4 text-right font-bold font-mono text-slate-900">
+                      {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-4 text-slate-500 font-medium">Amount Paid</td>
+                    <td className="py-2 px-4 text-right font-mono font-medium text-slate-900">
+                      {amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                  <tr className="bg-[#11161d] text-white">
+                    <td className="py-3 px-4 font-bold text-amber-400 text-sm">BALANCE DUE</td>
+                    <td className="py-3 px-4 text-right font-black text-white text-base font-mono">
+                      {curr} {balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div className="space-y-1 text-slate-600 pl-3 border-l-2 border-slate-100">
-              <p>• Amount paid of {curr} {amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been received and adjusted against the total invoice value.</p>
-              <p>• Remaining balance of {curr} {balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is payable via Bank Transfer / Wise to the account below.</p>
-            </div>
-          </div>
 
-          {/* 6. BANK DETAILS & Kundan Bharti Signature */}
-          <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col md:flex-row justify-between items-start gap-8">
-            <div className="flex-1 text-xs">
-              <div className="flex items-center gap-2 mb-3">
+            <p className="text-[11px] text-slate-600 italic mt-3">
+              Amount in Words: {numberToWords(balanceDue)}
+            </p>
+
+            {/* 5. NOTE Section */}
+            <div className="mt-6 text-xs">
+              <div className="flex items-center gap-2 mb-2">
                 <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
-                <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">BANK DETAILS</h3>
+                <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">NOTE</h3>
               </div>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Account Name</span>
-                  <span className="font-bold text-slate-900">SAKK GROUP</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">IFSC Code</span>
-                  <span className="font-bold text-slate-900 font-mono">ICIC0000831</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Bank Name</span>
-                  <span className="font-bold text-slate-900">ICICI Bank</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">SWIFT Code</span>
-                  <span className="font-bold text-slate-900 font-mono">ICICINBBCTS</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Branch</span>
-                  <span className="font-bold text-slate-900">Delhi, Laxminagar</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Account Type</span>
-                  <span className="font-bold text-slate-900">Current Account</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Account Number</span>
-                  <span className="font-bold text-slate-900 font-mono">083105004592</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block text-[11px]">GST No.</span>
-                  <span className="font-bold text-slate-900 font-mono">07AFWFS6592Q1ZI</span>
-                </div>
+              <div className="space-y-1 text-slate-600 pl-3 border-l-2 border-slate-100">
+                <p>• Amount paid of {curr} {amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been received and adjusted against the total invoice value.</p>
+                <p>• Remaining balance of {curr} {balanceDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is payable via Bank Transfer / Wise to the account below.</p>
               </div>
             </div>
 
-            {/* Signature Block */}
-            <div className="w-48 text-center shrink-0 self-end md:self-auto">
-              <div className="h-16 flex items-center justify-center">
-                <img src="/signature.png" alt="Kundan Bharti Signature" className="max-h-16 max-w-full object-contain" />
+            {/* 6. BANK DETAILS & Kundan Bharti Signature */}
+            <div className="mt-8 pt-6 border-t border-slate-200 flex flex-col md:flex-row justify-between items-start gap-8">
+              <div className="flex-1 text-xs">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-3.5 bg-amber-600 rounded-full" />
+                  <h3 className="font-bold uppercase tracking-wider text-slate-900 text-xs">BANK DETAILS</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Account Name</span>
+                    <span className="font-bold text-slate-900">SAKK GROUP</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">IFSC Code</span>
+                    <span className="font-bold text-slate-900 font-mono">ICIC0000831</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Bank Name</span>
+                    <span className="font-bold text-slate-900">ICICI Bank</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">SWIFT Code</span>
+                    <span className="font-bold text-slate-900 font-mono">ICICINBBCTS</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Branch</span>
+                    <span className="font-bold text-slate-900">Delhi, Laxminagar</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Account Type</span>
+                    <span className="font-bold text-slate-900">Current Account</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">Account Number</span>
+                    <span className="font-bold text-slate-900 font-mono">083105004592</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">GST No.</span>
+                    <span className="font-bold text-slate-900 font-mono">07AFWFS6592Q1ZI</span>
+                  </div>
+                </div>
               </div>
-              <p className="font-bold text-xs text-slate-900 mt-2">For SAKK Group</p>
-              <p className="text-[11px] text-slate-500">Authorized Signatory</p>
-            </div>
-          </div>
 
-          {/* 7. Bottom Footer Bar */}
-          <div className="bg-[#11161d] text-white -mx-8 -mb-8 sm:-mx-12 sm:-mb-12 mt-10 py-3.5 px-6 text-center text-[11px] space-y-0.5">
-            <p className="text-slate-300">SAKK Group &nbsp;|&nbsp; sakkgroupmanagement@gmail.com &nbsp;|&nbsp; +91 8294219244 &nbsp;|&nbsp; www.sakkgroup.com</p>
-            <p className="text-amber-400 font-medium italic text-[10px]">Innovating for a Better Tomorrow</p>
-          </div>
+              {/* Signature Block */}
+              <div className="w-48 text-center shrink-0 self-end md:self-auto">
+                <div className="h-16 flex items-center justify-center">
+                  <img src="/signature.png" alt="Kundan Bharti Signature" className="max-h-16 max-w-full object-contain" />
+                </div>
+                <p className="font-bold text-xs text-slate-900 mt-2">For SAKK Group</p>
+                <p className="text-[11px] text-slate-500">Authorized Signatory</p>
+              </div>
+            </div>
+
+            {/* 7. Bottom Footer Bar */}
+            <div className="bg-[#11161d] text-white -mx-8 -mb-8 sm:-mx-12 sm:-mb-12 mt-10 py-3.5 px-6 text-center text-[11px] space-y-0.5">
+              <p className="text-slate-300">SAKK Group &nbsp;|&nbsp; sakkgroupmanagement@gmail.com &nbsp;|&nbsp; +91 9296900728 &nbsp;|&nbsp; www.sakkgroup.com</p>
+              <p className="text-amber-400 font-medium italic text-[10px]">Innovating for a Better Tomorrow</p>
+            </div>
 
           </div>
         </div>

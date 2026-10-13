@@ -600,7 +600,7 @@ export function DigitalSignatureModal({
             <input
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
-              placeholder="e.g. Shubham Garg"
+              placeholder="e.g. Authorized Signatory"
               className="mt-1 w-full border rounded-xl p-2.5 text-sm bg-white"
             />
           </div>
@@ -611,7 +611,7 @@ export function DigitalSignatureModal({
               type="email"
               value={signerEmail}
               onChange={(e) => setSignerEmail(e.target.value)}
-              placeholder="e.g. shubhamkumargarg63@gmail.com"
+              placeholder="e.g. signer@company.com"
               className="mt-1 w-full border rounded-xl p-2.5 text-sm bg-white"
             />
           </div>

@@ -108,7 +108,7 @@ graph TD
   - Resets automatically to `001` on every new calendar year.
 - **Official Corporate Layout**:
   - Top header banner with SAKK Group logo and slogan *"Innovating for a Better Tomorrow"*.
-  - Full company metadata: `sakkgroupmanagement@gmail.com` | `+91 8294219244` | `www.sakkgroup.com`.
+  - Full company metadata: `sakkgroupmanagement@gmail.com` | `+91 9296900728` | `www.sakkgroup.com`.
   - Client billing address, GSTIN, invoice dates, and due dates.
   - Itemized table with Descriptions, HSN codes, Unit Price, Quantity, and Totals.
   - State Bank of India (SBI) Bank Account & IFSC details.
@@ -336,7 +336,7 @@ sakk-group-crm-architecture/
 
 - 🌐 **Official Website**: [www.sakkgroup.com](https://www.sakkgroup.com)
 - 📧 **Corporate Email**: [sakkgroupmanagement@gmail.com](mailto:sakkgroupmanagement@gmail.com)
-- 📞 **Official Contact**: [+91 8294219244](tel:+918294219244)
+- 📞 **Official Contact**: [+91 9296900728](tel:+919296900728)
 - 📍 **Headquarters**: India
 
 ---
