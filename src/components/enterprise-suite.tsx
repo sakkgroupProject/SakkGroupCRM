@@ -213,9 +213,12 @@ export function ExecutiveProjectWidget({ notify }: { notify: (m: string) => void
   const variance = totalBudget - totalActual;
   const avgProgress = Math.round(projects.reduce((s, p) => s + Number(p.computedProgress || 0), 0) / projects.length);
 
-  // Profitability Margin Split: Estimate 60% Labor vs 40% Material on projects
-  const estimatedLaborCost = totalActual * 0.62;
-  const estimatedMaterialCost = totalActual * 0.38;
+  // Live Profitability Margin Split from live labor and material expenses
+  const totalLabor = projects.reduce((s, p) => s + Number(p.laborCost || 0), 0);
+  const totalMaterial = projects.reduce((s, p) => s + Number(p.materialCost || 0), 0);
+  const sumCost = totalLabor + totalMaterial;
+  const laborPct = sumCost > 0 ? Math.round((totalLabor / sumCost) * 100) : (totalActual > 0 ? 50 : 0);
+  const materialPct = sumCost > 0 ? 100 - laborPct : (totalActual > 0 ? 50 : 0);
 
   return (
     <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-4">
@@ -256,16 +259,16 @@ export function ExecutiveProjectWidget({ notify }: { notify: (m: string) => void
         <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5">
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 bg-sky-500 rounded-full" />
-            Labor Cost (Time Logs): {fmtMoney(estimatedLaborCost)} (62%)
+            Labor Cost: {fmtMoney(totalLabor)} ({laborPct}%)
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
-            Materials &amp; Vendor: {fmtMoney(estimatedMaterialCost)} (38%)
+            Materials &amp; Vendor: {fmtMoney(totalMaterial)} ({materialPct}%)
           </span>
         </div>
         <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex">
-          <div style={{ width: "62%" }} className="bg-sky-500 h-full" title="Labor Cost" />
-          <div style={{ width: "38%" }} className="bg-amber-500 h-full" title="Material Cost" />
+          <div style={{ width: `${laborPct}%` }} className="bg-sky-500 h-full transition-all duration-300" title="Labor Cost" />
+          <div style={{ width: `${materialPct}%` }} className="bg-amber-500 h-full transition-all duration-300" title="Material Cost" />
         </div>
       </div>
     </div>
@@ -275,19 +278,41 @@ export function ExecutiveProjectWidget({ notify }: { notify: (m: string) => void
 /* =========================================================================
    3. ADVANCED INTERACTIVE SVG KPI CHARTS
    ========================================================================= */
-export function AdvancedSVGCharts({ revenueByMonth, dealsByStage }: { revenueByMonth?: Any[]; dealsByStage?: Any[] }) {
-  const months = (revenueByMonth && revenueByMonth.length > 0)
-    ? revenueByMonth
-    : [
-        { month: "May", revenue: 14000 },
-        { month: "Jun", revenue: 22000 },
-        { month: "Jul", revenue: 18500 },
-        { month: "Aug", revenue: 31000 },
-        { month: "Sep", revenue: 42500 },
-        { month: "Oct", revenue: 58000 },
-      ];
+export function AdvancedSVGCharts({
+  revenueByMonth,
+  dealsByStage,
+  funnelStages,
+  revenueGrowth,
+  totalRevenue,
+}: {
+  revenueByMonth?: Any[];
+  dealsByStage?: Any[];
+  funnelStages?: Any[];
+  revenueGrowth?: number;
+  totalRevenue?: number;
+}) {
+  const fallbackMonths = () => {
+    const list = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      list.push({ month: d.toLocaleString("en-US", { month: "short" }), revenue: 0 });
+    }
+    return list;
+  };
 
+  const months = (revenueByMonth && revenueByMonth.length > 0) ? revenueByMonth : fallbackMonths();
   const maxRev = Math.max(1, ...months.map((m) => Number(m.revenue || 0)));
+
+  const funnel = (funnelStages && funnelStages.length > 0)
+    ? funnelStages
+    : [
+        { stage: "Lead Capture", count: 0, value: 0, percent: 0, color: "bg-slate-400" },
+        { stage: "Qualified Prospect", count: 0, value: 0, percent: 0, color: "bg-sky-500" },
+        { stage: "Proposal & Quotation", count: 0, value: 0, percent: 0, color: "bg-indigo-500" },
+        { stage: "Contract Negotiation", count: 0, value: 0, percent: 0, color: "bg-amber-500" },
+        { stage: "Closed Won Deal", count: 0, value: 0, percent: 0, color: "bg-emerald-500" },
+      ];
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
@@ -301,7 +326,7 @@ export function AdvancedSVGCharts({ revenueByMonth, dealsByStage }: { revenueByM
             <p className="text-xs text-slate-500">Live multi-month revenue progression</p>
           </div>
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-            +38% Run Rate
+            {revenueGrowth !== undefined ? `${revenueGrowth >= 0 ? "+" : ""}${revenueGrowth}% Velocity` : totalRevenue ? `$${Number(totalRevenue).toLocaleString()} Ledger` : "Live PostgreSQL"}
           </span>
         </div>
 
@@ -323,8 +348,9 @@ export function AdvancedSVGCharts({ revenueByMonth, dealsByStage }: { revenueByM
             {(() => {
               const points: { x: number; y: number; revenue: any; month: any }[] = months.map((m: Any, idx: number) => {
                 const x = (idx / (months.length - 1)) * 480 + 10;
-                const y = 150 - (Number(m.revenue || 0) / maxRev) * 120;
-                return { x, y, revenue: m.revenue, month: m.month };
+                const rev = Number(m.revenue || 0);
+                const y = maxRev > 1 ? 150 - (rev / maxRev) * 120 : 150;
+                return { x, y, revenue: rev, month: m.month };
               });
 
               const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
@@ -334,17 +360,21 @@ export function AdvancedSVGCharts({ revenueByMonth, dealsByStage }: { revenueByM
                 <>
                   <path d={areaPath} fill="url(#chartGradient)" />
                   <path d={linePath} fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinecap="round" />
-                  {points.map((p, i) => (
-                    <g key={i}>
-                      <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#10b981" strokeWidth="3" />
-                      <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fill="#0f172a" fontWeight="bold">
-                        ${(Number(p.revenue) / 1000).toFixed(0)}k
-                      </text>
-                      <text x={p.x} y="175" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="semibold">
-                        {p.month}
-                      </text>
-                    </g>
-                  ))}
+                  {points.map((p, i) => {
+                    const rev = Number(p.revenue || 0);
+                    const label = rev >= 1000 ? `$${(rev / 1000).toFixed(rev >= 10000 ? 0 : 1)}k` : rev > 0 ? `$${rev}` : "$0";
+                    return (
+                      <g key={i}>
+                        <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#10b981" strokeWidth="3" />
+                        <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fill="#0f172a" fontWeight="bold">
+                          {label}
+                        </text>
+                        <text x={p.x} y="175" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="semibold">
+                          {p.month}
+                        </text>
+                      </g>
+                    );
+                  })}
                 </>
               );
             })()}
@@ -359,28 +389,27 @@ export function AdvancedSVGCharts({ revenueByMonth, dealsByStage }: { revenueByM
             <h3 className="font-bold text-slate-900 flex items-center gap-2">
               <BarChart2 size={18} className="text-sky-600" /> Pipeline Stage Conversion Funnel
             </h3>
-            <p className="text-xs text-slate-500">Qualification &amp; progression efficiency</p>
+            <p className="text-xs text-slate-500">Live qualification &amp; progression efficiency</p>
           </div>
-          <span className="text-xs font-semibold text-slate-400">Real-time</span>
+          <span className="text-xs font-semibold text-slate-400">Live PostgreSQL</span>
         </div>
 
         <div className="space-y-3 pt-1">
-          {[
-            { stage: "Lead Capture", percent: 100, color: "bg-slate-400" },
-            { stage: "Qualified Prospect", percent: 74, color: "bg-sky-500" },
-            { stage: "Proposal & Quotation", percent: 52, color: "bg-indigo-500" },
-            { stage: "Contract Negotiation", percent: 38, color: "bg-amber-500" },
-            { stage: "Closed Won Deal", percent: 26, color: "bg-emerald-500" },
-          ].map((item, idx) => (
+          {funnel.map((item: Any, idx: number) => (
             <div key={idx}>
               <div className="flex justify-between text-xs font-semibold mb-1">
-                <span className="text-slate-700">{item.stage}</span>
-                <span className="text-slate-900 font-bold">{item.percent}%</span>
+                <span className="text-slate-700 flex items-center gap-1.5">
+                  {item.stage}
+                  <span className="text-[11px] font-normal text-slate-400">
+                    ({item.count ?? 0} {item.count === 1 ? "deal" : "deals"}{item.value > 0 ? ` • $${Number(item.value).toLocaleString()}` : ""})
+                  </span>
+                </span>
+                <span className="text-slate-900 font-bold">{item.percent ?? 0}%</span>
               </div>
               <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${item.color}`}
-                  style={{ width: `${item.percent}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${item.color || "bg-emerald-500"}`}
+                  style={{ width: `${Math.min(100, Math.max(item.percent > 0 ? 3 : 0, item.percent || 0))}%` }}
                 />
               </div>
             </div>
@@ -1063,6 +1092,9 @@ export function BankReconciliationView({ notify }: { notify: (m: string) => void
   const [data, setData] = useState<Any | null>(null);
   const [csvText, setCsvText] = useState("");
   const [importing, setImporting] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualTx, setManualTx] = useState({ date: new Date().toISOString().slice(0, 10), description: "", amount: "", type: "credit", reference: "" });
+  const [savingManual, setSavingManual] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -1098,6 +1130,37 @@ export function BankReconciliationView({ notify }: { notify: (m: string) => void
       notify(err.message);
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function saveManual() {
+    if (!manualTx.description.trim()) return notify("Description required");
+    if (!manualTx.amount || Number(manualTx.amount) <= 0) return notify("Positive amount required");
+    setSavingManual(true);
+    try {
+      const res = await api("/api/finance/reconciliation", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "import",
+          transactions: [
+            {
+              date: manualTx.date || new Date().toISOString().slice(0, 10),
+              description: manualTx.description.trim(),
+              amount: Number(manualTx.amount),
+              type: manualTx.type || "credit",
+              reference: manualTx.reference.trim() || undefined,
+            },
+          ],
+        }),
+      });
+      notify(res.message || "Bank transaction recorded and matched!");
+      setShowManualModal(false);
+      setManualTx({ date: new Date().toISOString().slice(0, 10), description: "", amount: "", type: "credit", reference: "" });
+      load();
+    } catch (err: any) {
+      notify(err.message);
+    } finally {
+      setSavingManual(false);
     }
   }
 
@@ -1151,14 +1214,22 @@ export function BankReconciliationView({ notify }: { notify: (m: string) => void
 
       {/* Upload Statement Card */}
       <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-3">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center flex-wrap gap-2">
           <h3 className="font-bold text-sm text-slate-900">Import Bank Statement (CSV / Feed)</h3>
-          <button
-            onClick={() => setCsvText("2026-10-10,Client Wire Transfer - Enterprise Consulting,1500,credit,UTR987654\n2026-10-12,Direct Deposit - Acme Corp,500,credit,UTR112233")}
-            className="text-xs text-emerald-700 font-semibold hover:underline"
-          >
-            Load Sample Feed
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowManualModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1 shadow-sm transition"
+            >
+              <Plus size={14} /> Add Transaction Manually
+            </button>
+            <button
+              onClick={() => setCsvText("2026-10-10,Client Wire Transfer - Enterprise Consulting,1500,credit,UTR987654\n2026-10-12,Direct Deposit - Acme Corp,500,credit,UTR112233")}
+              className="text-xs text-emerald-700 font-semibold hover:underline"
+            >
+              Load Sample Feed
+            </button>
+          </div>
         </div>
         <textarea
           rows={3}
@@ -1175,6 +1246,102 @@ export function BankReconciliationView({ notify }: { notify: (m: string) => void
           {importing ? "Matching against Ledger..." : "Ingest & Auto-Match Statement"}
         </button>
       </div>
+
+      {showManualModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base sm:text-lg text-slate-900">Add Bank Transaction</h3>
+                <p className="text-xs text-slate-500">Log a bank deposit, wire receipt, or debit fee</p>
+              </div>
+              <button onClick={() => setShowManualModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Transaction Date</label>
+                  <input
+                    type="date"
+                    value={manualTx.date}
+                    onChange={(e) => setManualTx({ ...manualTx, date: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-xs bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Type</label>
+                  <select
+                    value={manualTx.type}
+                    onChange={(e) => setManualTx({ ...manualTx, type: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-xs bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="credit">Credit (Deposit / Inflow)</option>
+                    <option value="debit">Debit (Payment / Outflow)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Description / Memo *</label>
+                <input
+                  type="text"
+                  required
+                  value={manualTx.description}
+                  onChange={(e) => setManualTx({ ...manualTx, description: e.target.value })}
+                  placeholder="e.g. Wire Transfer - Acme Corp Inv #SAKK-INV-26-001"
+                  className="w-full border rounded-xl px-3 py-2 text-xs bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Amount ($) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={manualTx.amount}
+                    onChange={(e) => setManualTx({ ...manualTx, amount: e.target.value })}
+                    placeholder="1500.00"
+                    className="w-full border rounded-xl px-3 py-2 text-xs bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Reference / UTR</label>
+                  <input
+                    type="text"
+                    value={manualTx.reference}
+                    onChange={(e) => setManualTx({ ...manualTx, reference: e.target.value })}
+                    placeholder="e.g. UTR98765432"
+                    className="w-full border rounded-xl px-3 py-2 text-xs bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setShowManualModal(false)}
+                className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingManual}
+                onClick={saveManual}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50"
+              >
+                {savingManual ? "Saving..." : "Record Transaction"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Transaction List */}
       <div className="bg-white border rounded-2xl p-6 shadow-sm space-y-3">

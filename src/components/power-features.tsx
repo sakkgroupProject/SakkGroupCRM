@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { 
-  Calendar as CalIcon, Clock, Upload, History, FileText, ShoppingCart, 
-  ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Play, Pause, 
-  RotateCcw, Download, Plus, Trash2, Eye, Filter, ArrowRight, Check
+import {
+  Calendar as CalIcon, Clock, Upload, History, FileText, ShoppingCart,
+  ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Play, Pause,
+  RotateCcw, Download, Plus, Trash2, Eye, Filter, ArrowRight, Check, X
 } from "lucide-react";
 import { api, fmtMoney, fmtDate } from "@/lib/api";
 
@@ -110,7 +110,7 @@ export function ImportWizard({ notify }: { notify: (m: string) => void }) {
           Bulk CSV Import Wizard
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Import bulk records directly into PostgreSQL with automated validation, duplicate email detection, and audit logging.
+          Import bulk records directly with automated validation, duplicate email detection, and audit logging.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-4 mt-6">
@@ -253,7 +253,7 @@ export function ClientHistoryModal({
   useEffect(() => {
     api(`/api/contacts/${contactId}/history`)
       .then(setData)
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [contactId]);
 
@@ -349,6 +349,9 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<Any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scheduleModal, setScheduleModal] = useState<any>(null);
+  const [team, setTeam] = useState<Any[]>([]);
+  const [savingEvent, setSavingEvent] = useState(false);
 
   const loadEvents = useCallback(async () => {
     try {
@@ -363,7 +366,33 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
 
   useEffect(() => {
     loadEvents();
+    api("/api/team").then(r => setTeam(r.items || [])).catch(() => { });
   }, [loadEvents]);
+
+  async function saveEvent() {
+    if (!scheduleModal?.title?.trim()) return notify("Event title required");
+    setSavingEvent(true);
+    try {
+      await api("/api/activities", {
+        method: "POST",
+        body: JSON.stringify({
+          title: scheduleModal.title,
+          type: scheduleModal.type || "task",
+          priority: scheduleModal.priority || "medium",
+          dueDate: scheduleModal.dueDate || new Date().toISOString(),
+          description: scheduleModal.description || "",
+          assignedTo: scheduleModal.assignedTo || null,
+        }),
+      });
+      notify("Activity scheduled on calendar!");
+      setScheduleModal(null);
+      loadEvents();
+    } catch (e: any) {
+      notify(e.message);
+    } finally {
+      setSavingEvent(false);
+    }
+  }
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -401,10 +430,16 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
             {monthNames[month]} {year}
           </h2>
           <p className="text-xs text-slate-500">
-            Interactive master schedule: Activities, Project Milestones, and Invoice Due Dates.
+            Interactive master schedule: Click any day cell or "+ Schedule Event" to log calls, meetings, and deadlines.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setScheduleModal({ title: "", type: "task", priority: "medium", dueDate: new Date().toISOString().slice(0, 10), description: "", assignedTo: "" })}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition"
+          >
+            <Plus size={15} /> Schedule Event
+          </button>
           <button onClick={prevMonth} className="p-2 border rounded-lg hover:bg-slate-50">
             <ChevronLeft size={16} />
           </button>
@@ -431,10 +466,22 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
             const isToday = new Date().toISOString().slice(0, 10) === dateStr;
 
             return (
-              <div key={idx} className={`p-1.5 min-h-[90px] flex flex-col ${isToday ? "bg-emerald-50/40" : ""}`}>
-                <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-emerald-600 text-white" : "text-slate-700"}`}>
-                  {day}
-                </span>
+              <div
+                key={idx}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest(".event-bubble")) return;
+                  setScheduleModal({ title: "", type: "task", priority: "medium", dueDate: dateStr, description: "", assignedTo: "" });
+                }}
+                className={`p-1.5 min-h-[90px] flex flex-col group cursor-pointer hover:bg-slate-50/80 transition ${isToday ? "bg-emerald-50/40" : ""}`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-emerald-600 text-white" : "text-slate-700"}`}>
+                    {day}
+                  </span>
+                  <span className="opacity-0 group-hover:opacity-100 text-[10px] text-emerald-700 font-bold transition">
+                    + Add
+                  </span>
+                </div>
 
                 <div className="mt-1 space-y-1 flex-1 overflow-y-auto max-h-[85px]">
                   {dayEvents.map((ev, i) => {
@@ -442,14 +489,14 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
                       ev.type === "invoice"
                         ? "bg-amber-100 text-amber-800 border-amber-200"
                         : ev.type === "task"
-                        ? "bg-sky-100 text-sky-800 border-sky-200"
-                        : "bg-emerald-100 text-emerald-800 border-emerald-200";
+                          ? "bg-sky-100 text-sky-800 border-sky-200"
+                          : "bg-emerald-100 text-emerald-800 border-emerald-200";
 
                     return (
                       <div
                         key={i}
                         title={ev.title}
-                        className={`text-[10px] font-medium p-1 rounded border leading-tight truncate cursor-pointer ${typeColor}`}
+                        className={`event-bubble text-[10px] font-medium p-1 rounded border leading-tight truncate cursor-pointer ${typeColor}`}
                         onClick={() => notify(`${ev.title} (Status: ${ev.status})`)}
                       >
                         {ev.title}
@@ -462,6 +509,120 @@ export function CalendarView({ notify }: { notify: (m: string) => void }) {
           })}
         </div>
       </div>
+
+      {scheduleModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base sm:text-lg text-slate-900">Schedule Event / Activity</h3>
+                <p className="text-xs text-slate-500">Plan a meeting, call, task, or deadline</p>
+              </div>
+              <button onClick={() => setScheduleModal(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={scheduleModal.title}
+                  onChange={(e) => setScheduleModal({ ...scheduleModal, title: e.target.value })}
+                  placeholder="e.g. Client demo presentation"
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Activity Type</label>
+                  <select
+                    value={scheduleModal.type}
+                    onChange={(e) => setScheduleModal({ ...scheduleModal, type: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="call">Call</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="task">Task</option>
+                    <option value="email">Email</option>
+                    <option value="note">Note</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
+                  <select
+                    value={scheduleModal.priority}
+                    onChange={(e) => setScheduleModal({ ...scheduleModal, priority: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={scheduleModal.dueDate}
+                    onChange={(e) => setScheduleModal({ ...scheduleModal, dueDate: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Rep</label>
+                  <select
+                    value={scheduleModal.assignedTo || ""}
+                    onChange={(e) => setScheduleModal({ ...scheduleModal, assignedTo: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {team.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Description / Agenda</label>
+                <textarea
+                  rows={2}
+                  value={scheduleModal.description}
+                  onChange={(e) => setScheduleModal({ ...scheduleModal, description: e.target.value })}
+                  placeholder="Agenda items or call objectives..."
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setScheduleModal(null)}
+                className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingEvent}
+                onClick={saveEvent}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50"
+              >
+                {savingEvent ? "Scheduling..." : "Save to Calendar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -478,14 +639,14 @@ export function ProjectGantt({ notify }: { notify: (m: string) => void }) {
     api("/api/projects").then((d) => {
       setProjects(d.items || []);
       if (d.items?.length > 0) setSelectedProjectId(d.items[0].id);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
     if (!selectedProjectId) return;
     api(`/api/project-tasks?projectId=${selectedProjectId}`)
       .then((d) => setTasks(d.items || []))
-      .catch(() => {});
+      .catch(() => { });
   }, [selectedProjectId]);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -544,8 +705,8 @@ export function ProjectGantt({ notify }: { notify: (m: string) => void }) {
                   t.priority === "urgent"
                     ? "bg-red-500"
                     : t.priority === "high"
-                    ? "bg-amber-500"
-                    : "bg-emerald-500";
+                      ? "bg-amber-500"
+                      : "bg-emerald-500";
 
                 return (
                   <div key={t.id} className="border rounded-xl p-3 bg-slate-50 hover:bg-white transition">
@@ -593,13 +754,17 @@ export function TimeTrackerWidget({ notify }: { notify: (m: string) => void }) {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [description, setDescription] = useState("");
+  const [mode, setMode] = useState<"stopwatch" | "manual">("stopwatch");
+  const [manualHours, setManualHours] = useState("1");
+  const [manualDate, setManualDate] = useState(new Date().toISOString().slice(0, 10));
+  const [loggingManual, setLoggingManual] = useState(false);
   const intervalRef = useRef<any>(null);
 
   useEffect(() => {
     api("/api/project-tasks").then((d) => {
       setTasks(d.items || []);
       if (d.items?.length > 0) setSelectedTaskId(d.items[0].id);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -641,78 +806,179 @@ export function TimeTrackerWidget({ notify }: { notify: (m: string) => void }) {
     }
   }
 
+  async function logManualTime() {
+    if (!selectedTaskId) return notify("Please select a task");
+    if (!manualHours || Number(manualHours) <= 0) return notify("Please enter valid hours");
+    setLoggingManual(true);
+    try {
+      await api("/api/time-logs", {
+        method: "POST",
+        body: JSON.stringify({
+          taskId: selectedTaskId,
+          hours: manualHours,
+          logDate: manualDate || new Date().toISOString().slice(0, 10),
+          description: description || "Manual project time entry",
+        }),
+      });
+      notify(`Successfully logged ${manualHours} hours to project!`);
+      setDescription("");
+    } catch (e: any) {
+      notify(e.message);
+    } finally {
+      setLoggingManual(false);
+    }
+  }
+
   return (
     <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-lg border border-white/10">
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
         <h4 className="font-bold text-sm flex items-center gap-2">
           <Clock className="text-emerald-400" size={16} />
-          Active Task Stopwatch & Time Logger
+          Project Time Tracker & Logger
         </h4>
-        <span className="text-xs font-mono bg-white/10 px-2 py-0.5 rounded text-emerald-400">
-          {isRunning ? "RECORDING" : "IDLE"}
-        </span>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4 items-center">
-        <div>
-          <select
-            value={selectedTaskId}
-            onChange={(e) => setSelectedTaskId(e.target.value)}
-            className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
-          >
-            {tasks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title} ({t.projectName || "General"})
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Work memo (e.g. Design review, bugfix)"
-            className="w-full mt-2 bg-slate-800 border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
-          />
-        </div>
-
-        <div className="flex flex-col items-center sm:items-end">
-          <span className="text-3xl font-black font-mono tracking-wider text-emerald-400">
-            {timeFormatted}
-          </span>
-          <div className="flex gap-2 mt-2">
-            {!isRunning ? (
-              <button
-                onClick={() => setIsRunning(true)}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
-              >
-                <Play size={13} /> Start
-              </button>
-            ) : (
-              <button
-                onClick={() => setIsRunning(false)}
-                className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
-              >
-                <Pause size={13} /> Pause
-              </button>
-            )}
+        <div className="flex items-center gap-2">
+          <div className="flex bg-white/10 p-0.5 rounded-lg text-xs">
             <button
-              onClick={() => {
-                setIsRunning(false);
-                setSeconds(0);
-              }}
-              className="bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-lg text-xs"
+              type="button"
+              onClick={() => setMode("stopwatch")}
+              className={`px-2.5 py-1 rounded-md font-semibold transition ${mode === "stopwatch" ? "bg-emerald-600 text-white" : "text-slate-300 hover:text-white"}`}
             >
-              <RotateCcw size={13} />
+              ⏱️ Stopwatch
             </button>
             <button
-              onClick={logTrackedTime}
-              className="bg-white text-slate-900 hover:bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold"
+              type="button"
+              onClick={() => setMode("manual")}
+              className={`px-2.5 py-1 rounded-md font-semibold transition ${mode === "manual" ? "bg-emerald-600 text-white" : "text-slate-300 hover:text-white"}`}
             >
-              Commit Log
+              ✍️ Manual Entry
+            </button>
+          </div>
+          {mode === "stopwatch" && (
+            <span className="text-xs font-mono bg-white/10 px-2 py-0.5 rounded text-emerald-400">
+              {isRunning ? "RECORDING" : "IDLE"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {mode === "stopwatch" ? (
+        <div className="grid sm:grid-cols-2 gap-4 items-center">
+          <div>
+            <select
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            >
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} ({t.projectName || "General"})
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Work memo (e.g. Design review, bugfix)"
+              className="w-full mt-2 bg-slate-800 border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+            />
+          </div>
+
+          <div className="flex flex-col items-center sm:items-end">
+            <span className="text-3xl font-black font-mono tracking-wider text-emerald-400">
+              {timeFormatted}
+            </span>
+            <div className="flex gap-2 mt-2">
+              {!isRunning ? (
+                <button
+                  onClick={() => setIsRunning(true)}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
+                >
+                  <Play size={13} /> Start
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsRunning(false)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1"
+                >
+                  <Pause size={13} /> Pause
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setIsRunning(false);
+                  setSeconds(0);
+                }}
+                className="bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-lg text-xs"
+              >
+                <RotateCcw size={13} />
+              </button>
+              <button
+                onClick={logTrackedTime}
+                className="bg-white text-slate-900 hover:bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold"
+              >
+                Commit Log
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-4 gap-3 items-end">
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] text-slate-400 font-semibold mb-1">Project Task *</label>
+            <select
+              value={selectedTaskId}
+              onChange={(e) => setSelectedTaskId(e.target.value)}
+              className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            >
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} ({t.projectName || "General"})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] text-slate-400 font-semibold mb-1">Hours *</label>
+            <input
+              type="number"
+              step="0.25"
+              min="0.25"
+              value={manualHours}
+              onChange={(e) => setManualHours(e.target.value)}
+              placeholder="e.g. 2.5"
+              className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] text-slate-400 font-semibold mb-1">Log Date</label>
+            <input
+              type="date"
+              value={manualDate}
+              onChange={(e) => setManualDate(e.target.value)}
+              className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description of work completed..."
+              className="w-full bg-slate-800 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none"
+            />
+          </div>
+          <div>
+            <button
+              disabled={loggingManual}
+              onClick={logManualTime}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs transition disabled:opacity-50"
+            >
+              {loggingManual ? "Logging..." : "Save Time Log"}
             </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1098,9 +1364,8 @@ export function APAgingView({ notify }: { notify: (m: string) => void }) {
                   <td className="p-3 text-xs text-slate-600">{i.vendorName || i.category || "General"}</td>
                   <td className="p-3 font-bold text-slate-900">{fmtMoney(i.amount, i.currency)}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      i.ageDays > 90 ? "bg-red-100 text-red-700" : i.ageDays > 60 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${i.ageDays > 90 ? "bg-red-100 text-red-700" : i.ageDays > 60 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                      }`}>
                       {i.bucket}
                     </span>
                   </td>
@@ -1122,6 +1387,19 @@ export function APAgingView({ notify }: { notify: (m: string) => void }) {
 export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
   const [leads, setLeads] = useState<Any[]>([]);
   const [showEmbedCode, setShowEmbedCode] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [team, setTeam] = useState<Any[]>([]);
+  const [savingLead, setSavingLead] = useState(false);
+  const [leadForm, setLeadForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    source: "phone_call",
+    status: "new",
+    assignedTo: "",
+    message: "",
+  });
 
   const load = useCallback(async () => {
     try {
@@ -1134,6 +1412,7 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
 
   useEffect(() => {
     load();
+    api("/api/team").then(r => setTeam(r.items || [])).catch(() => { });
   }, [load]);
 
   async function updateStatus(id: string, status: string) {
@@ -1146,6 +1425,45 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
       load();
     } catch (e: any) {
       notify(e.message);
+    }
+  }
+
+  async function deleteLead(id: string) {
+    if (!confirm("Are you sure you want to delete this lead?")) return;
+    try {
+      await api(`/api/leads/submissions?id=${id}`, { method: "DELETE" });
+      notify("Lead deleted successfully");
+      load();
+    } catch (e: any) {
+      notify(e.message);
+    }
+  }
+
+  async function saveManualLead() {
+    if (!leadForm.name.trim()) return notify("Lead name is required");
+    setSavingLead(true);
+    try {
+      await api("/api/leads/submissions", {
+        method: "POST",
+        body: JSON.stringify(leadForm),
+      });
+      notify("Lead added successfully! Contact and follow-up activity created.");
+      setShowAddModal(false);
+      setLeadForm({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        source: "phone_call",
+        status: "new",
+        assignedTo: "",
+        message: "",
+      });
+      load();
+    } catch (e: any) {
+      notify(e.message);
+    } finally {
+      setSavingLead(false);
     }
   }
 
@@ -1165,18 +1483,26 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <ArrowRight className="text-emerald-600" size={20} />
-            Inbound Website Leads & Forms
+            Inbound Leads & Inquiry Pipeline
           </h2>
           <p className="text-xs text-slate-500">
-            Real-time leads submitted via your website contact forms and external marketing webhooks.
+            Manage incoming leads from calls, WhatsApp, website contact forms, referrals, and marketing webhooks.
           </p>
         </div>
-        <button
-          onClick={() => setShowEmbedCode(!showEmbedCode)}
-          className="border bg-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
-        >
-          {showEmbedCode ? "Hide Form Snippet" : "Get Website Form Code"}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-sm transition"
+          >
+            <Plus size={16} /> Add Lead Manually
+          </button>
+          <button
+            onClick={() => setShowEmbedCode(!showEmbedCode)}
+            className="border bg-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold hover:bg-slate-50 flex items-center gap-1.5 shadow-sm"
+          >
+            {showEmbedCode ? "Hide Form Snippet" : "Get Website Form Code"}
+          </button>
+        </div>
       </div>
 
       {showEmbedCode && (
@@ -1211,7 +1537,8 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
               <th className="p-3">Lead Name</th>
               <th className="p-3">Contact Details</th>
               <th className="p-3">Company</th>
-              <th className="p-3">Message</th>
+              <th className="p-3">Source</th>
+              <th className="p-3">Message / Requirements</th>
               <th className="p-3">Date</th>
               <th className="p-3">Status</th>
               <th className="p-3 text-right">Action</th>
@@ -1220,8 +1547,8 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
           <tbody className="divide-y">
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-slate-400">
-                  No website submissions yet. Submit a test lead via the endpoint or your contact form.
+                <td colSpan={8} className="p-8 text-center text-slate-400">
+                  No leads recorded yet. Click &quot;Add Lead Manually&quot; to log a phone/WhatsApp inquiry or embed the website contact form.
                 </td>
               </tr>
             ) : (
@@ -1233,14 +1560,19 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
                     <p className="text-slate-400">{l.phone || ""}</p>
                   </td>
                   <td className="p-3 text-xs">{l.company || "—"}</td>
+                  <td className="p-3 text-xs">
+                    <span className="capitalize px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-700">
+                      {(l.source || "inbound").replace("_", " ")}
+                    </span>
+                  </td>
                   <td className="p-3 text-xs text-slate-600 max-w-[200px] truncate">{l.message || "—"}</td>
                   <td className="p-3 text-xs text-slate-400">{fmtDate(l.createdAt)}</td>
                   <td className="p-3"><Badge v={l.status} /></td>
-                  <td className="p-3 text-right space-x-1">
+                  <td className="p-3 text-right space-x-1 whitespace-nowrap">
                     {l.status !== "converted" && (
                       <button
                         onClick={() => updateStatus(l.id, "converted")}
-                        className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold"
+                        className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-semibold hover:bg-emerald-200 transition"
                       >
                         Convert
                       </button>
@@ -1253,6 +1585,13 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
                         Dismiss
                       </button>
                     )}
+                    <button
+                      onClick={() => deleteLead(l.id)}
+                      title="Delete lead"
+                      className="p-1 text-slate-400 hover:text-red-600 rounded inline-flex items-center"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </td>
                 </tr>
               ))
@@ -1260,6 +1599,148 @@ export function LeadCaptureInbox({ notify }: { notify: (m: string) => void }) {
           </tbody>
         </table>
       </div>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base sm:text-lg text-slate-900">Add Lead Manually</h3>
+                <p className="text-xs text-slate-500">Log an inquiry from phone, WhatsApp, referral, or walk-in</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={leadForm.name}
+                  onChange={(e) => setLeadForm({ ...leadForm, name: e.target.value })}
+                  placeholder="e.g. John Doe"
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={leadForm.email}
+                    onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+                    placeholder="john@example.com"
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={leadForm.phone}
+                    onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                    placeholder="+91 92969 00728"
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Company / Organization</label>
+                  <input
+                    type="text"
+                    value={leadForm.company}
+                    onChange={(e) => setLeadForm({ ...leadForm, company: e.target.value })}
+                    placeholder="e.g. Pasada Group"
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Source</label>
+                  <select
+                    value={leadForm.source}
+                    onChange={(e) => setLeadForm({ ...leadForm, source: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="phone_call">Phone Call</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="walk_in">Direct Walk-In</option>
+                    <option value="referral">Client Referral</option>
+                    <option value="event">Trade Show / Conference</option>
+                    <option value="social">LinkedIn / Social Media</option>
+                    <option value="website_form">Website Contact Form</option>
+                    <option value="other">Other Inbound</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assign to Sales Rep</label>
+                  <select
+                    value={leadForm.assignedTo}
+                    onChange={(e) => setLeadForm({ ...leadForm, assignedTo: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Auto-Assign (Round-Robin)</option>
+                    {team.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Status</label>
+                  <select
+                    value={leadForm.status}
+                    onChange={(e) => setLeadForm({ ...leadForm, status: e.target.value })}
+                    className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="qualified">Qualified</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Inquiry / Requirement Notes</label>
+                <textarea
+                  rows={3}
+                  value={leadForm.message}
+                  onChange={(e) => setLeadForm({ ...leadForm, message: e.target.value })}
+                  placeholder="Inquired about project architecture, requested proposal by next week..."
+                  className="w-full border rounded-xl px-3 py-2 text-sm bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingLead}
+                onClick={saveManualLead}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm disabled:opacity-50"
+              >
+                {savingLead ? "Saving Lead..." : "Save Lead"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

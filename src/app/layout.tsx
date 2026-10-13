@@ -10,9 +10,9 @@ export const viewport: Viewport = {
   themeColor: "#0f172a",
 };
 
-export const metadata: Metadata = { 
-  title: "SAKK Group CRM — Enterprise CRM & Business Management", 
-  description: "SAKK Group CRM: clients, pipeline, quotations, contracts, projects, invoices, payments & allocations, expenses, vendors, documents, reports — PostgreSQL backed.",
+export const metadata: Metadata = {
+  title: "SAKK Group CRM — Enterprise CRM & Business Management",
+  description: "SAKK Group CRM: clients, pipeline, quotations, contracts, projects, invoices, payments & allocations, expenses, vendors, documents, reports — backed.",
   icons: { icon: "/logo.png", apple: "/logo.png" }
 };
 

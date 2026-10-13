@@ -213,7 +213,7 @@ export default function Home() {
           <Image src="/logo.png" alt="SAKK Group Logo" width={40} height={40} priority className="w-10 h-10 object-contain rounded-full shadow ring-1 ring-white/20 bg-slate-800" />
           <div>
             <p className="font-bold leading-tight text-white">SAKK Group</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">PostgreSQL • Live API</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">SAKK-CRM</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
@@ -227,11 +227,10 @@ export default function Home() {
                   <button
                     key={key}
                     onClick={() => setView(key)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      view === key
-                        ? "bg-emerald-600 text-white shadow"
-                        : "text-slate-300 hover:bg-white/10"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${view === key
+                      ? "bg-emerald-600 text-white shadow"
+                      : "text-slate-300 hover:bg-white/10"
+                      }`}
                   >
                     <Icon size={18} />
                     <span className="truncate">{label}</span>
@@ -297,11 +296,10 @@ export default function Home() {
                           setView(key);
                           setMobileNavOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                          view === key
-                            ? "bg-emerald-600 text-white shadow"
-                            : "text-slate-300 hover:bg-white/10"
-                        }`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${view === key
+                          ? "bg-emerald-600 text-white shadow"
+                          : "text-slate-300 hover:bg-white/10"
+                          }`}
                       >
                         <Icon size={18} />
                         <span className="truncate">{label}</span>
@@ -356,11 +354,7 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-semibold border border-emerald-200">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="hidden sm:inline">PostgreSQL Connected</span>
-              <span className="sm:hidden">Live API</span>
-            </span>
+
             <button onClick={logout} title="Logout" className="md:hidden p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg min-h-[40px] min-w-[40px] flex items-center justify-center">
               <LogOut size={18} />
             </button>
@@ -453,12 +447,12 @@ function Dashboard({ go, notify }: { go: (v: string) => void, notify: (m: string
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         <DashboardPersonalizer settings={settings} onToggle={toggleSetting} />
+        <button onClick={() => go("leads_inbox")} className="bg-sky-500 hover:bg-sky-600 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition text-white">+ Add Lead</button>
         <button onClick={() => go("contacts")} className="bg-emerald-500 hover:bg-emerald-600 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition">+ Add Contact</button>
         <button onClick={() => go("deals")} className="bg-white hover:bg-slate-100 text-slate-900 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition">+ Add Deal</button>
       </div>
     </div>
 
-    {settings.showStopwatch && <TimeTrackerWidget notify={notify} />}
     {settings.showProjects && <ExecutiveProjectWidget notify={notify} />}
 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -473,7 +467,15 @@ function Dashboard({ go, notify }: { go: (v: string) => void, notify: (m: string
       ))}
     </div>
 
-    {settings.showCharts && <AdvancedSVGCharts revenueByMonth={d?.revenueByMonth} dealsByStage={d?.byStage} />}
+    {settings.showCharts && (
+      <AdvancedSVGCharts
+        revenueByMonth={d?.revenueByMonth}
+        dealsByStage={d?.byStage}
+        funnelStages={d?.funnelStages}
+        revenueGrowth={d?.revenueGrowth}
+        totalRevenue={d?.stats?.paidInvoices || d?.stats?.revenue}
+      />
+    )}
 
     {settings.showPipeline && (
       <div className="grid lg:grid-cols-3 gap-6">
@@ -485,6 +487,9 @@ function Dashboard({ go, notify }: { go: (v: string) => void, notify: (m: string
     )}
 
     <div className="bg-white rounded-xl border p-5"><h3 className="font-bold mb-3">Recent deals</h3>{d.recentDeals.length === 0 ? <Empty text="No deals yet — create your first deal to start tracking revenue." action="Go to Deals" onAction={() => go("deals")} /> : <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-slate-500 border-b"><th className="py-2">Deal</th><th>Value</th><th>Stage</th><th>Close date</th></tr></thead><tbody>{d.recentDeals.map((x: Any) => <tr key={x.id} className="border-b last:border-0"><td className="py-2 font-medium">{x.title}</td><td>{fmtMoney(x.value, x.currency)}</td><td><Badge v={x.stage} /></td><td>{fmtDate(x.expectedCloseDate)}</td></tr>)}</tbody></table></div>}</div>
+
+    {/* Task Stopwatch & Time Logger timer placed at the bottom after Recent deals */}
+    {settings.showStopwatch && <TimeTrackerWidget notify={notify} />}
   </div>;
 }
 
@@ -585,11 +590,55 @@ function Deals({ notify }: { notify: (m: string) => void }) {
 /* ---------- PIPELINE KANBAN ---------- */
 function Pipeline({ notify }: { notify: (m: string) => void }) {
   const [items, setItems] = useState<Any[]>([]);
+  const [modal, setModal] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const { contacts, companies, team } = useLookups();
   const load = useCallback(async () => { const d = await api("/api/deals?limit=200"); setItems(d.items); }, []);
   useEffect(() => { load().catch(e => notify(e.message)); }, [load, notify]);
   async function move(id: string, stage: string) { try { await api(`/api/deals/${id}`, { method: "PATCH", body: JSON.stringify({ stage }) }); notify(`Moved to ${STAGE_LABEL[stage]}`); load(); } catch (e: any) { notify(e.message); } }
-  return <div><div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x">{STAGES.map(stage => { const col = items.filter(d => d.stage === stage); const sum = col.reduce((a, b) => a + Number(b.value || 0), 0); return <div key={stage} className="min-w-[260px] sm:min-w-[270px] w-[260px] sm:w-[270px] bg-slate-200/60 rounded-2xl p-3 shrink-0 snap-start"><div className="flex justify-between items-center px-1 pb-3"><h3 className="font-bold text-sm">{STAGE_LABEL[stage]} <span className="text-slate-500">({col.length})</span></h3><span className="text-xs font-bold text-emerald-700">{fmtMoney(sum)}</span></div><div className="space-y-3">{col.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No deals</p>}{col.map(d => <div key={d.id} className="bg-white rounded-xl border p-4 shadow-sm"><p className="font-semibold text-sm">{d.title}</p><p className="text-xs text-slate-500 mt-1">{d.companyName || d.contactName || "No company"}</p><p className="font-bold text-emerald-700 mt-2">{fmtMoney(d.value, d.currency)}</p><p className="text-[11px] text-slate-400">{d.probability}% • {fmtDate(d.expectedCloseDate)}</p><div className="flex gap-1 mt-3">{STAGES.filter(s => s !== stage).slice(0, 3).map(s => <button key={s} onClick={() => move(d.id, s)} className="text-[10px] px-2 py-1 bg-slate-100 rounded-full font-medium">→ {STAGE_LABEL[s]}</button>)}</div><select value={stage} onChange={e => move(d.id, e.target.value)} className="w-full mt-2 border rounded-lg text-xs py-1.5 px-2"><option value={stage}>Move to...</option>{STAGES.filter(s => s !== stage).map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}</select></div>)}</div></div>; })}</div>
-    <p className="text-xs text-slate-500 mt-2">Tip: Use the dropdown on any card to move it — the stage &amp; probability update instantly in PostgreSQL via PATCH /api/deals/:id</p></div>;
+  async function saveDeal() {
+    if (!modal.title) return notify("Deal title required");
+    setSaving(true);
+    try {
+      await api("/api/deals", { method: "POST", body: JSON.stringify(modal) });
+      notify("Deal added to pipeline!");
+      setModal(null);
+      load();
+    } catch (e: any) {
+      notify(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  return <div>
+    <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900">Visual Sales Pipeline Kanban</h2>
+        <p className="text-xs text-slate-500">Drag or move deals across lifecycle stages from lead to closed-won.</p>
+      </div>
+      <button
+        onClick={() => setModal({ title: "", value: "", stage: "lead", currency: "USD", expectedCloseDate: "", contactId: "", companyId: "", description: "" })}
+        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shadow-sm transition"
+      >
+        <Plus size={16} /> New Deal
+      </button>
+    </div>
+    <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x">{STAGES.map(stage => { const col = items.filter(d => d.stage === stage); const sum = col.reduce((a, b) => a + Number(b.value || 0), 0); return <div key={stage} className="min-w-[260px] sm:min-w-[270px] w-[260px] sm:w-[270px] bg-slate-200/60 rounded-2xl p-3 shrink-0 snap-start"><div className="flex justify-between items-center px-1 pb-3"><h3 className="font-bold text-sm">{STAGE_LABEL[stage]} <span className="text-slate-500">({col.length})</span></h3><div className="flex items-center gap-1.5"><span className="text-xs font-bold text-emerald-700">{fmtMoney(sum)}</span><button onClick={() => setModal({ title: "", value: "", stage, currency: "USD", expectedCloseDate: "", contactId: "", companyId: "", description: "" })} title={`Add deal to ${STAGE_LABEL[stage]}`} className="w-5 h-5 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 rounded-full flex items-center justify-center text-xs font-bold shadow-xs transition">+</button></div></div><div className="space-y-3">{col.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No deals</p>}{col.map(d => <div key={d.id} className="bg-white rounded-xl border p-4 shadow-sm"><p className="font-semibold text-sm">{d.title}</p><p className="text-xs text-slate-500 mt-1">{d.companyName || d.contactName || "No company"}</p><p className="font-bold text-emerald-700 mt-2">{fmtMoney(d.value, d.currency)}</p><p className="text-[11px] text-slate-400">{d.probability}% • {fmtDate(d.expectedCloseDate)}</p><div className="flex gap-1 mt-3">{STAGES.filter(s => s !== stage).slice(0, 3).map(s => <button key={s} onClick={() => move(d.id, s)} className="text-[10px] px-2 py-1 bg-slate-100 rounded-full font-medium">→ {STAGE_LABEL[s]}</button>)}</div><select value={stage} onChange={e => move(d.id, e.target.value)} className="w-full mt-2 border rounded-lg text-xs py-1.5 px-2"><option value={stage}>Move to...</option>{STAGES.filter(s => s !== stage).map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}</select></div>)}</div></div>; })}</div>
+    <p className="text-xs text-slate-500 mt-2">Tip: Use the dropdown on any card to move it — the stage &amp; probability update instantly in Database via PATCH /api/deals/:id</p>
+    {modal && (
+      <Modal title="New Deal" onClose={() => setModal(null)} onSave={saveDeal} saving={saving}>
+        <Field label="Deal title *"><Input value={modal.title || ""} onChange={(e: any) => setModal({ ...modal, title: e.target.value })} placeholder="e.g. Enterprise License" /></Field>
+        <Field label="Value"><Input type="number" value={modal.value || ""} onChange={(e: any) => setModal({ ...modal, value: e.target.value })} /></Field>
+        <Field label="Stage"><Select value={modal.stage} onChange={(e: any) => setModal({ ...modal, stage: e.target.value })}>{STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}</Select></Field>
+        <Field label="Currency"><Select value={modal.currency || "USD"} onChange={(e: any) => setModal({ ...modal, currency: e.target.value })}><option>USD</option><option>EUR</option><option>GBP</option><option>INR</option></Select></Field>
+        <Field label="Contact"><Select value={modal.contactId || ""} onChange={(e: any) => setModal({ ...modal, contactId: e.target.value })}><option value="">Select contact</option>{contacts.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>)}</Select></Field>
+        <Field label="Company"><Select value={modal.companyId || ""} onChange={(e: any) => setModal({ ...modal, companyId: e.target.value })}><option value="">Select company</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+        <Field label="Expected close date"><Input type="date" value={modal.expectedCloseDate || ""} onChange={(e: any) => setModal({ ...modal, expectedCloseDate: e.target.value })} /></Field>
+        <Field label="Owner"><Select value={modal.ownerId || ""} onChange={(e: any) => setModal({ ...modal, ownerId: e.target.value })}><option value="">Me (default)</option>{team.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></Field>
+        <div className="sm:col-span-2"><Field label="Description"><Textarea value={modal.description || ""} onChange={(e: any) => setModal({ ...modal, description: e.target.value })} /></Field></div>
+      </Modal>
+    )}
+  </div>;
 }
 
 /* ---------- ACTIVITIES ---------- */
@@ -712,5 +761,5 @@ function SettingsPage({ user, setUser, notify }: { user: Any, setUser: (u: Any) 
     <div className="bg-white rounded-xl border p-6"><h3 className="font-bold">Business Settings</h3><p className="text-sm text-slate-500">Saved to app_settings table (admin/manager only). Payment gateway: {gateway ? `${gateway.provider} ${gateway.configured ? "configured" : "NOT configured — set Razorpay test keys"}` : "..."}</p><div className="grid sm:grid-cols-2 gap-4 mt-4"><Field label="Company name"><Input value={kv.companyName || ""} onChange={(e: any) => setKv({ ...kv, companyName: e.target.value })} placeholder="SAKK Group" /></Field><Field label="Default currency"><Input value={kv.defaultCurrency || ""} onChange={(e: any) => setKv({ ...kv, defaultCurrency: e.target.value })} placeholder="INR" /></Field><Field label="Default tax %"><Input value={kv.defaultTaxRate || ""} onChange={(e: any) => setKv({ ...kv, defaultTaxRate: e.target.value })} placeholder="18" /></Field><Field label="Invoice prefix"><Input value={kv.invoicePrefix || ""} onChange={(e: any) => setKv({ ...kv, invoicePrefix: e.target.value })} placeholder="INV-" /></Field></div><button onClick={saveKv} className="mt-4 bg-slate-900 text-white px-5 py-2.5 rounded-lg font-semibold text-sm">Save settings</button></div>
     <div className="bg-white rounded-xl border p-6"><h3 className="font-bold">Security — MFA & Password</h3><div className="flex gap-2 flex-wrap mt-3"><button onClick={() => mfaAction("setup")} className="border px-4 py-2 rounded-lg text-sm font-medium">1. Generate MFA secret</button><button onClick={() => mfaAction("enable")} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">2. Enable MFA</button><button onClick={() => mfaAction("disable")} className="border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">Disable MFA</button></div>{mfa && <div className="mt-3 bg-slate-50 rounded-lg p-4 text-sm break-all"><p><b>Secret:</b> {mfa.secret}</p><p className="text-xs mt-1">{mfa.otpauthUrl}</p><p className="text-xs text-slate-500 mt-1">{mfa.instructions}</p></div>}<div className="mt-3 max-w-xs"><Field label="Authenticator code"><Input value={mfaCode} onChange={(e: any) => setMfaCode(e.target.value)} placeholder="6-digit code" /></Field></div><div className="grid sm:grid-cols-2 gap-4 mt-5"><Field label="Current password"><Input type="password" value={pw.currentPassword} onChange={(e: any) => setPw({ ...pw, currentPassword: e.target.value })} /></Field><Field label="New password"><Input type="password" value={pw.newPassword} onChange={(e: any) => setPw({ ...pw, newPassword: e.target.value })} /></Field></div><button onClick={changePw} className="mt-3 bg-slate-900 text-white px-5 py-2 rounded-lg text-sm font-semibold">Change password</button></div>
     <div className="bg-white rounded-xl border p-6"><h3 className="font-bold">Email Outbox</h3><p className="text-sm text-slate-500">{outbox.length} email(s) — sent via SMTP when configured, otherwise queued here (never faked as sent). Invites, password resets, invoices & quotations land here.</p><div className="mt-3 space-y-2 max-h-64 overflow-y-auto">{outbox.slice(0, 20).map((o: Any) => <div key={o.id} className="flex gap-2 text-sm border rounded-lg p-3"><Badge v={o.status} /><div><p className="font-medium">{o.subject}</p><p className="text-xs text-slate-500">to {o.toEmail} • {fmtDate(o.createdAt)}</p></div></div>)}{outbox.length === 0 && <p className="text-sm text-slate-400">No emails queued yet.</p>}</div><button onClick={async () => { try { const r = await api("/api/email/outbox", { method: "POST" }); notify(`Retry: ${r.sent} sent, gateway configured: ${r.configured}`); } catch (e: any) { notify(e.message) } }} className="mt-3 border px-4 py-2 rounded-lg text-sm">Retry queued emails</button></div>
-    <div className="bg-white rounded-xl border p-6"><h3 className="font-bold">API Integration — all endpoints live</h3><div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs font-mono bg-slate-50 rounded-lg p-4">{["POST /api/auth/register (invite-only)", "POST /api/auth/login + MFA", "POST /api/auth/forgot/reset-password", "POST /api/invitations (admin)", "GET|POST /api/contacts + convert", "GET|POST /api/companies", "GET|POST /api/deals (PATCH stage)", "GET|POST /api/quotations + convert/pdf/send", "GET|POST /api/contracts", "GET|POST /api/projects + tasks", "GET|POST /api/invoices + pdf/send", "GET|POST /api/payments + allocate", "POST /api/payments/gateway/* (Razorpay)", "POST /api/credit-notes", "GET|POST /api/expenses (approval)", "GET|POST /api/vendors", "POST /api/documents/upload + signed-link", "GET /api/recurring + run", "GET /api/notifications", "GET /api/audit-logs", "GET|PUT /api/settings", "GET /api/dashboard /reports /export"].map(e => <p key={e} className="flex gap-1 items-center"><ChevronRight size={12} className="text-emerald-600" />{e}</p>)}</div><p className="text-xs text-slate-500 mt-3">Every screen reads & writes through these APIs to PostgreSQL via Drizzle ORM. No mock, demo or hardcoded records.</p></div></div>;
+    <div className="bg-white rounded-xl border p-6"><h3 className="font-bold">API Integration — all endpoints live</h3><div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs font-mono bg-slate-50 rounded-lg p-4">{["POST /api/auth/register (invite-only)", "POST /api/auth/login + MFA", "POST /api/auth/forgot/reset-password", "POST /api/invitations (admin)", "GET|POST /api/contacts + convert", "GET|POST /api/companies", "GET|POST /api/deals (PATCH stage)", "GET|POST /api/quotations + convert/pdf/send", "GET|POST /api/contracts", "GET|POST /api/projects + tasks", "GET|POST /api/invoices + pdf/send", "GET|POST /api/payments + allocate", "POST /api/payments/gateway/* (Razorpay)", "POST /api/credit-notes", "GET|POST /api/expenses (approval)", "GET|POST /api/vendors", "POST /api/documents/upload + signed-link", "GET /api/recurring + run", "GET /api/notifications", "GET /api/audit-logs", "GET|PUT /api/settings", "GET /api/dashboard /reports /export"].map(e => <p key={e} className="flex gap-1 items-center"><ChevronRight size={12} className="text-emerald-600" />{e}</p>)}</div><p className="text-xs text-slate-500 mt-3">Every screen reads & writes through these APIs to Database via Drizzle ORM. No mock, demo or hardcoded records.</p></div></div>;
 }

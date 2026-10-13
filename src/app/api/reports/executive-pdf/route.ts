@@ -48,7 +48,7 @@ export async function GET(req: Request) {
       if (fs.existsSync(logoPath)) {
         try {
           doc.image(logoPath, 50, 45, { width: 55 });
-        } catch {}
+        } catch { }
       }
 
       doc.fillColor("#0f172a").fontSize(24).font("Helvetica-Bold").text("SAKK Group", 120, 50);
@@ -144,7 +144,7 @@ export async function GET(req: Request) {
       doc.moveDown(2);
       doc.fillColor("#0f172a").fontSize(11).font("Helvetica-Bold").text("Governance & Compliance Audit Statement");
       doc.fillColor("#64748b").fontSize(9).font("Helvetica").text(
-        "All financial metrics in this analytical report are computed in real-time from immutable PostgreSQL transaction ledgers, invoice allocations, and verified bank records in SAKK Group CRM. No projected or estimated dummy data is included."
+        "All financial metrics in this analytical report are computed in real-time from immutable transaction ledgers, invoice allocations, and verified bank records in SAKK Group CRM. No projected or estimated dummy data is included."
       );
 
       doc.fillColor("#94a3b8").fontSize(9).font("Helvetica").text("Page 2 of 2 • SAKK Group Confidential", 50, doc.page.height - 40, { align: "center" });
