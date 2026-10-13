@@ -1,0 +1,3 @@
+import { db } from "@/db"; import { emailOutbox } from "@/db/schema"; import { desc } from "drizzle-orm"; import { getCurrentUser, unauthorized, ok } from "@/lib/auth"; import { forbid } from "@/lib/rbac"; import { emailConfigured, retryOutbox } from "@/lib/email";
+export async function GET(){ const u=await getCurrentUser(); if(!u) return unauthorized(); const rows=await db.select().from(emailOutbox).orderBy(desc(emailOutbox.createdAt)).limit(100); return ok({items:rows,total:rows.length,emailConfigured:emailConfigured()}); }
+export async function POST(){ const u=await getCurrentUser(); if(!u) return unauthorized(); const f=forbid(u,"settings.manage"); if(f) return f; return ok(await retryOutbox()); }

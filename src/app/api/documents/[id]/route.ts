@@ -1,0 +1,2 @@
+import { db } from "@/db"; import { documents } from "@/db/schema"; import { eq } from "drizzle-orm"; import { getCurrentUser, unauthorized, ok } from "@/lib/auth";
+export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){ const u=await getCurrentUser(); if(!u) return unauthorized(); const {id}=await params; await db.delete(documents).where(eq(documents.id,id)); return ok({deleted:true}); }

@@ -1,0 +1,8 @@
+import { createHmac, randomBytes } from "crypto";
+const B32="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+export function base32Encode(buf:Buffer){ let bits=0,val=0,out=""; for(const b of buf){ val=(val<<8)|b; bits+=8; while(bits>=5){ out+=B32[(val>>>(bits-5))&31]; bits-=5; } } if(bits>0) out+=B32[(val<<(5-bits))&31]; return out; }
+export function base32Decode(s:string){ const clean=s.replace(/=+$/,"").toUpperCase(); let bits=0,val=0; const bytes:number[]=[]; for(const ch of clean){ const idx=B32.indexOf(ch); if(idx<0) continue; val=(val<<5)|idx; bits+=5; if(bits>=8){ bytes.push((val>>>(bits-8))&255); bits-=8; } } return Buffer.from(bytes); }
+export function generateTotpSecret(){ return base32Encode(randomBytes(20)); }
+export function totpCode(secret:string, timestamp=Date.now(), step=30, digits=6){ const counter=Math.floor(timestamp/1000/step); const buf=Buffer.alloc(8); buf.writeBigUInt64BE(BigInt(counter)); const key=base32Decode(secret); const h=createHmac("sha1",key).update(buf).digest(); const offset=h[h.length-1]&15; const code=((h[offset]&127)<<24)|((h[offset+1]&255)<<16)|((h[offset+2]&255)<<8)|(h[offset+3]&255); return String(code%(10**digits)).padStart(digits,"0"); }
+export function verifyTotp(secret:string, code:string){ const clean=String(code||"").replace(/\s/g,""); if(!/^\d{6}$/.test(clean)) return false; for(const d of [-1,0,1]){ if(totpCode(secret,Date.now()+d*30000)===clean) return true; } return false; }
+export function otpauthUrl(email:string, secret:string){ return `otpauth://totp/SAKKCRM:${encodeURIComponent(email)}?secret=${secret}&issuer=SAKKCRM&digits=6&period=30`; }

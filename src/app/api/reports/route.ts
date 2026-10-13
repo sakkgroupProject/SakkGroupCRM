@@ -1,0 +1,11 @@
+import { db } from "@/db"; import { deals, contacts, invoices, activities, companies, payments, expenses, projects } from "@/db/schema"; import { sql, count, sum, eq } from "drizzle-orm"; import { getCurrentUser, unauthorized, ok } from "@/lib/auth";
+export async function GET(){ const u=await getCurrentUser(); if(!u) return unauthorized();
+ const dealsByStage=await db.select({stage:deals.stage,c:count(),v:sum(deals.value)}).from(deals).groupBy(deals.stage);
+ const contactsBySource=await db.select({source:contacts.source,c:count()}).from(contacts).groupBy(contacts.source);
+ const contactsByStatus=await db.select({status:contacts.status,c:count()}).from(contacts).groupBy(contacts.status);
+ const invoicesByStatus=await db.select({status:invoices.status,c:count(),v:sum(invoices.amount)}).from(invoices).groupBy(invoices.status);
+ const topCompanies=await db.execute(sql`select c.name, count(d.id)::int as deals, coalesce(sum(d.value),0) as value from companies c left join deals d on d.company_id=c.id group by c.id,c.name order by value desc limit 10`);
+ const activityByType=await db.select({type:activities.type,c:count()}).from(activities).groupBy(activities.type);
+ const revByMonth=await db.execute(sql`select to_char(created_at,'YYYY-MM') as month, coalesce(sum(value),0) as revenue, count(*)::int as deals from deals where stage='won' group by 1 order by 1 desc limit 12`);
+ const allInv=await db.select().from(invoices); const { invoiceBalance } = await import("@/lib/finance"); let receivables=0, collected=0; for(const inv of allInv){ const b=await invoiceBalance(inv.id); if(b&&inv.status!=="cancelled"){ receivables+=b.outstanding; collected+=b.paidAmount; } } const [payTotal]=await db.select({v:sum(payments.amount)}).from(payments).where(sql`${payments.status} not in ('failed','refunded')`); const [expTotal]=await db.select({v:sum(expenses.amount)}).from(expenses).where(sql`${expenses.status} in ('approved','paid','reimbursed')`); return ok({financeSummary:{receivables,collectedAllocations:collected,validPayments:Number(payTotal.v||0),approvedExpenses:Number(expTotal.v||0)},dealsByStage,contactsBySource,contactsByStatus,invoicesByStatus,topCompanies:topCompanies.rows,activityByType,revenueByMonth:revByMonth.rows});
+}

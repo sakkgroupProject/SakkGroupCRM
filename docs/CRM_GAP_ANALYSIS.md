@@ -1,0 +1,11 @@
+# CRM Gap Analysis (Prioritized)
+- P0: Public register could self-assign admin -> fixed: first user admin, later public registrations forced to `sales`; role creation only via admin Team API.
+- P0: No payment allocation integrity (overpayment/double-count risk) -> Payments + PaymentAllocations with DB transactions, row locks (`FOR UPDATE`), server-computed invoice outstanding = total - valid allocations - applied credit notes.
+- P0: Any role could delete team/finance records -> server-side RBAC (`src/lib/rbac.ts`) enforced in API routes (not UI hiding).
+- P1: Paid invoices editable -> blocked amount/tax/qty edits once allocations exist; status corrections via credit notes/reversals.
+- P1: Missing Quotations/Contracts/Projects/Expenses/Vendors/Documents/Notifications/Audit -> implemented (APIs + UI).
+- P1: No auth throttling/security headers -> in-memory login/register rate limit + Next security headers.
+- P2: No duplicate contact detection -> 409 on duplicate contact email.
+- P2: Dashboard/reports not reconciled -> extended with receivables, collected payments, expenses, project/quotation counts.
+- P2: No automated tests -> `scripts/finance-regression.mjs` (live API, disposable records, exact ₹100k/₹50k/₹120k allocation scenario from the brief) + API smoke checks run in this audit.
+- BLOCKED: Real email delivery, PDF generation service, payment gateway/webhooks, Redis queues, malware scanning, S3 private storage — no provider credentials in environment; document registry stores validated external URLs/metadata only. Do not mark complete.

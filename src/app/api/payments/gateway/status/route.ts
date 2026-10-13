@@ -1,0 +1,2 @@
+import { getCurrentUser, unauthorized, ok } from "@/lib/auth";
+export async function GET(){ const u=await getCurrentUser(); if(!u) return unauthorized(); const configured=!!(process.env.RAZORPAY_KEY_ID&&process.env.RAZORPAY_KEY_SECRET); return ok({provider:"razorpay",configured,webhookConfigured:!!process.env.RAZORPAY_WEBHOOK_SECRET,message:configured?"Razorpay keys present — checkout orders can be created":"Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET (test keys for sandbox) to enable online checkout. Manual payments remain fully functional."}); }
